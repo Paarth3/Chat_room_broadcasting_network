@@ -13,52 +13,56 @@ std::mutex mtx;
 
 void handle_client(int client_socket){
 
-    int NEEDED_REFERENCE_BYTES = 4;
-    int received_reference_bytes = 0;
-    char reference_buffer[NEEDED_REFERENCE_BYTES];
-
-    while (received_reference_bytes < NEEDED_REFERENCE_BYTES){
-        int reference_bytes = read(client_socket, reference_buffer + received_reference_bytes, NEEDED_REFERENCE_BYTES - received_reference_bytes);
-
-        if (reference_bytes <= 0){
-            close(client_socket);
-            return;
+    while (true){
+        int NEEDED_REFERENCE_BYTES = 4;
+        int received_reference_bytes = 0;
+        char reference_buffer[NEEDED_REFERENCE_BYTES];
+    
+        while (received_reference_bytes < NEEDED_REFERENCE_BYTES){
+            int reference_bytes = read(client_socket, reference_buffer + received_reference_bytes, NEEDED_REFERENCE_BYTES - received_reference_bytes);
+    
+            if (reference_bytes <= 0){
+                close(client_socket);
+                return;
+            }
+    
+            received_reference_bytes += reference_bytes;
         }
-
-        received_reference_bytes += reference_bytes;
-    }
-
-    uint32_t network_number;
-    std::memcpy(&network_number, reference_buffer, sizeof(uint32_t));
-
-    int expected_bytes = ntohl(network_number);
-
-    std::cout << "We expect " << expected_bytes << " bytes of data." << std::endl;
-
-    int received_data_bytes = 0;
-    std::vector<char> buffer;
-    buffer.resize(expected_bytes);
-
-    while (received_data_bytes < expected_bytes){
-        int data_bytes = read(client_socket, buffer.data() + received_data_bytes, buffer.size() - received_data_bytes);
-
-        if (data_bytes <= 0){
-            close(client_socket);
-            return;
+    
+        uint32_t network_number;
+        std::memcpy(&network_number, reference_buffer, sizeof(uint32_t));
+    
+        int expected_bytes = ntohl(network_number);
+    
+        std::cout << "We expect " << expected_bytes << " bytes of data." << std::endl;
+    
+        int received_data_bytes = 0;
+        std::vector<char> buffer;
+        buffer.resize(expected_bytes);
+    
+        while (received_data_bytes < expected_bytes){
+            int data_bytes = read(client_socket, buffer.data() + received_data_bytes, buffer.size() - received_data_bytes);
+    
+            if (data_bytes <= 0){
+                close(client_socket);
+                return;
+            }
+    
+            received_data_bytes += data_bytes;
         }
-
-        received_data_bytes += data_bytes;
-    }
-
-    std::cout << "Broadcasting message: " << std::string(buffer.begin(), buffer.end()) << std::endl;
-
-    mtx.lock();
-    for (int i = 0; i < client_sockets.size(); i++){
-        if (client_sockets.at(i) != client_socket){
-            send(client_sockets.at(i), buffer.data(), buffer.size(), 0);
+    
+        std::cout << "Broadcasting message: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+    
+        mtx.lock();
+        for (int i = 0; i < client_sockets.size(); i++){
+            if (client_sockets.at(i) != client_socket){
+                uint32_t network_size_number = htonl(buffer.size()); 
+                send(client_sockets.at(i), &network_size_number, 4, 0);
+                send(client_sockets.at(i), buffer.data(), buffer.size(), 0);
+            }
         }
+        mtx.unlock();
     }
-    mtx.unlock();
 }
 
 int main(){

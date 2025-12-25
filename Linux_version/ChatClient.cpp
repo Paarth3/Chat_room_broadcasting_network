@@ -46,7 +46,9 @@ void receive_messages(int server_socket){
             received_data_bytes += data_bytes;
         }
 
+        std::cout << "\r\033[K";
         std::cout << "Message received: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+        std::cout << "Please enter your message (or \"exit\" to end the conversation): " << std::flush;
     }
 }
 
@@ -77,6 +79,23 @@ int main(){
 
     std::thread t(receive_messages, server_socket);
     t.detach();
+
+    while (true){
+        std::string user_message;
+        std::cout << "Please enter your message (or \"exit\" to end the conversation): ";
+        std::getline(std::cin >> std::ws, user_message);
+
+        if (user_message == "exit"){
+            close(server_socket);
+            break;
+        }
+
+        int message_size = user_message.length();
+        int network_message_size = htonl(message_size);
+
+        send(server_socket, &network_message_size, 4, 0);
+        send(server_socket, user_message.c_str(), message_size, 0);
+    }
 
     return 0;
 }
