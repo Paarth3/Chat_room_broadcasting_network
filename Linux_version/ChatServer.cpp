@@ -52,7 +52,11 @@ void handle_client(int client_socket){
 
     std::cout << "Broadcasting message: " << std::string(buffer.begin(), buffer.end()) << std::endl;
 
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ec44c8730f34166d190b391d60045ae2cfcb918e
 
 }
 
