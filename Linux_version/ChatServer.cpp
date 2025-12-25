@@ -13,6 +13,45 @@ std::mutex mtx;
 
 void handle_client(int client_socket){
 
+    int NEEDED_REFERENCE_BYTES = 4;
+    int received_reference_bytes = 0;
+    char reference_buffer[NEEDED_REFERENCE_BYTES];
+
+    while (received_reference_bytes < NEEDED_REFERENCE_BYTES){
+        int reference_bytes = read(client_socket, reference_buffer + received_reference_bytes, NEEDED_REFERENCE_BYTES - received_reference_bytes);
+
+        if (reference_bytes <= 0){
+            close(client_socket);
+            return;
+        }
+
+        received_reference_bytes += reference_bytes;
+    }
+
+    uint32_t network_number;
+    std::memcpy(&network_number, reference_buffer, sizeof(uint32_t));
+
+    int expected_bytes = ntohl(network_number);
+
+    std::cout << "We expect " << expected_bytes << " bytes of data." << std::endl;
+
+    int received_data_bytes = 0;
+    std::vector<char> buffer;
+    buffer.resize(expected_bytes);
+
+    while (received_data_bytes < expected_bytes){
+        int data_bytes = read(client_socket, buffer.data() + received_data_bytes, buffer.size());
+
+        if (data_bytes <= 0){
+            close(client_socket);
+            return;
+        }
+
+        received_data_bytes += data_bytes;
+    }
+
+    std::cout << "The message sent to you is: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+
 }
 
 int main(){
