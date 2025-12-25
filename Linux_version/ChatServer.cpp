@@ -40,7 +40,7 @@ void handle_client(int client_socket){
     buffer.resize(expected_bytes);
 
     while (received_data_bytes < expected_bytes){
-        int data_bytes = read(client_socket, buffer.data() + received_data_bytes, buffer.size());
+        int data_bytes = read(client_socket, buffer.data() + received_data_bytes, buffer.size() - received_data_bytes);
 
         if (data_bytes <= 0){
             close(client_socket);

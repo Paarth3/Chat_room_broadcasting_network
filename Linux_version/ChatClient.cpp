@@ -8,11 +8,53 @@
 #include <vector>
 #include <mutex>
 
+void receive_messages(int server_socket){
+
+    while(true){
+        int NEEDED_REFERENCE_BYTES = 4;
+        int received_reference_bytes = 0;
+        char reference_buffer[NEEDED_REFERENCE_BYTES];
+
+        while (received_reference_bytes < NEEDED_REFERENCE_BYTES){
+            int reference_bytes = read(server_socket, reference_buffer + received_reference_bytes, NEEDED_REFERENCE_BYTES - received_reference_bytes);
+
+            if (reference_bytes <= 0){
+                close(server_socket);
+                return;
+            }
+
+            received_reference_bytes += reference_bytes;
+        }
+
+        uint32_t network_number;
+        std::memcpy(&network_number, reference_buffer, sizeof(uint32_t));
+
+        int expected_bytes = ntohl(network_number);
+
+        int received_data_bytes = 0;
+        std::vector<char> buffer;
+        buffer.resize(expected_bytes);
+
+        while (received_data_bytes < expected_bytes){
+            int data_bytes = read(server_socket, buffer.data() + received_data_bytes, buffer.size() - received_data_bytes);
+
+            if (data_bytes <= 0){
+                close(server_socket);
+                return;
+            }
+
+            received_data_bytes += data_bytes;
+        }
+
+        std::cout << "Message received: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+    }
+}
+
 int main(){
 
-    int my_socket = socket(AF_INET, SOCK_STREAM, 0);
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (my_socket == -1){
+    if (server_socket == -1){
         std::cerr << "Failed to create socket!" << std::endl;
         return 1;
     }
@@ -23,15 +65,18 @@ int main(){
 
     if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) <= 0){
         std::cerr << "Invalid address / Address not supported!" << std::endl;
-        close(my_socket);
+        close(server_socket);
         return 1;
     }
 
-    if (connect(my_socket, (struct sockaddr*)&address, sizeof(address)) == -1){
+    if (connect(server_socket, (struct sockaddr*)&address, sizeof(address)) == -1){
         std::cerr << "Failed to connect to the server!" << std::endl;
-        close(my_socket);
+        close(server_socket);
         return 1;
     }
+
+    std::thread t(receive_messages, server_socket);
+    t.detach();
 
     return 0;
 }
