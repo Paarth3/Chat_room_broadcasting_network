@@ -50,7 +50,9 @@ void handle_client(int client_socket){
         received_data_bytes += data_bytes;
     }
 
-    std::cout << "The message sent to you is: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+    std::cout << "Broadcasting message: " << std::string(buffer.begin(), buffer.end()) << std::endl;
+
+    
 
 }
 
