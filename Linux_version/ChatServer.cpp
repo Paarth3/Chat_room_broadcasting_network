@@ -52,12 +52,13 @@ void handle_client(int client_socket){
 
     std::cout << "Broadcasting message: " << std::string(buffer.begin(), buffer.end()) << std::endl;
 
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> ec44c8730f34166d190b391d60045ae2cfcb918e
-
+    mtx.lock();
+    for (int i = 0; i < client_sockets.size(); i++){
+        if (client_sockets.at(i) != client_socket){
+            send(client_sockets.at(i), buffer.data(), buffer.size(), 0);
+        }
+    }
+    mtx.unlock();
 }
 
 int main(){
